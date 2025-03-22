@@ -226,19 +226,21 @@
         ];
 
         selectedCardFilenames = [];
-        let availableFiles = [...cardFiles]; 
+        let availableFiles = [...cardFiles]; // *Copy* the array
 
+        // Select 3 UNIQUE filenames
         for (let i = 0; i < 3; i++) {
-            if (availableFiles.length === 0) break;
+            if (availableFiles.length === 0) break; // Prevent errors if not enough files
             const randomIndex = Math.floor(Math.random() * availableFiles.length);
             selectedCardFilenames.push(availableFiles[randomIndex]);
-            availableFiles.splice(randomIndex, 1); /
+            availableFiles.splice(randomIndex, 1); // Remove the selected file
         }
 
 
         for (let i = 0; i < selectedCardFilenames.length; i++) {
             const card = document.createElement('div');
             card.classList.add('card');
+            //Key change is HERE. No more cyrillic
             const encodedFilename = encodeURIComponent(selectedCardFilenames[i]);
             card.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
 
