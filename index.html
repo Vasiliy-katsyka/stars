@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Гадание на звездах</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background-color: #f2a8a8;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.5s ease;
+        }
+
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .star {
+            position: absolute;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            cursor: pointer;
+            transition:  opacity 0.3s ease;
+            opacity: 0.9;
+            width: 50px;
+            height: 50px;
+        }
+
+        .star.background-star {
+            opacity: 0.4;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235a3535" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>');
+        }
+
+        .star.selected {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ffd700" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>');
+        }
+
+        .star.darkened-selected {
+            opacity: 0.4;
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%235a3535" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>');
+        }
+
+        .instruction {
+            background-color: transparent;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 2px solid #ffd700;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5em;
+        }
+
+        .instruction-hidden { display: none; }
+
+        .card-container {
+            display: flex;
+            justify-content: space-around;
+            width: 80%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .card-container.visible { opacity: 1; }
+
+        .card {
+            width: 80px;
+            height: 120px;
+            border: 2px solid #2980b9;
+            border-radius: 10px;
+            margin: 0 10px;
+            cursor: pointer;
+            position: relative;
+            background-size: cover;
+        }
+
+        .next-button {
+            background-color: #ffd700;
+            color: #000;
+            padding: 10px 20px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            display: none;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 5%;
+        }
+
+        .card-title {
+            text-align: center;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            color: #fff;
+            position: absolute;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .card-title-hidden { display: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="instruction">Думай о своем вопросе и выбери 3 звезды</div>
+    <div class="card-title card-title-hidden">Твои карты:</div>
+    <div class="card-container"></div>
+    <button class="next-button">Далее ></button>
+</div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let selectedStars = 0;
+    const totalStars = 15;
+    const stars = [];
+    let selectedCardFilenames = [];
+
+    const container = document.querySelector('.container');
+    const instruction = document.querySelector('.instruction');
+    const cardContainer = document.querySelector('.card-container');
+    const nextButton = document.querySelector('.next-button');
+    const cardTitle = document.querySelector('.card-title');
+
+    function selectStar(event) {
+        const star = event.currentTarget;
+        if (!cardContainer.classList.contains('visible') && !star.classList.contains('selected') && selectedStars < 3) {
+            star.classList.add('selected');
+            selectedStars++;
+            if (selectedStars === 3) showCards();
+        }
+    }
+
+    function createStars() {
+        const containerRect = container.getBoundingClientRect();
+        const instructionRect = instruction.getBoundingClientRect();
+
+        for (let i = 0; i < totalStars; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            const size = Math.floor(Math.random() * 21) + 40;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+
+            let left, top, attempts = 0;
+            do {
+                left = Math.random() * (containerRect.width - size);
+                top = Math.random() * (containerRect.height - size);
+                attempts++;
+            } while (attempts < 100 && (isOverlapping(star, left, top, size) || isInsideInstruction(left, top, size, instructionRect)));
+
+            star.style.left = `${left}px`;
+            star.style.top = `${top}px`;
+            star.addEventListener('click', selectStar);
+            container.appendChild(star);
+            stars.push(star);
+        }
+    }
+
+    function isOverlapping(newStar, left, top, size) {
+        for (const existingStar of stars) {
+            const existingRect = existingStar.getBoundingClientRect();
+             if (left < existingRect.right && left + size > existingRect.left &&
+                top < existingRect.bottom && top + size > existingRect.top) return true;
+        }
+        return false;
+    }
+
+    function isInsideInstruction(left, top, size, instructionRect) {
+      const starRect = { left, top, right: left + size, bottom: top + size };
+      return starRect.left < instructionRect.right && starRect.right > instructionRect.left &&
+             starRect.top < instructionRect.bottom && starRect.bottom > instructionRect.top;
+    }
+ function createCards() {
+        const cards = [];
+        const repoBaseUrl = "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Cards-png%202/Cards-png/";
+        const cardFiles = [
+            "╨С╨░╤И╨╜╤П.png", "╨Т╨╗╤О╨▒╨╗╨╡╨╜╨╜╤Л╨╡.png", "╨Т╨╛╨Б╤М╨╝╨╡╤А╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png",
+            "╨Т╨╛╨Б╤М╨╝╨╡╤А╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨Т╨╛╨Б╤М╨╝╨╡╤А╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨Т╨╛╨Б╤М╨╝╨╡╤А╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png",
+            "╨Т╨╡╤А╤Е╨╛╨▓╨╜╨░╤П ╨Ц╤А╨╕╤Ж╨░.png", "╨Ф╤М╤П╨▓╨╛╨╗.png", "╨Ф╨╡╤Б╤П╤В╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨Ф╨╡╤Б╤П╤В╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png",
+            "╨Ф╨╡╤Б╤П╤В╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨Ф╨╡╤Б╤П╤В╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨Ф╨╡╨▓╤П╤В╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png",
+            "╨Ф╨╡╨▓╤П╤В╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨Ф╨╡╨▓╤П╤В╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨Ф╨╡╨▓╤П╤В╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png",
+            "╨Ф╨▓╨╛╨╕╠Ж╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨Ф╨▓╨╛╨╕╠Ж╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨Ф╨▓╨╛╨╕╠Ж╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png",
+            "╨Ф╨▓╨╛╨╕╠Ж╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨Ч╨▓╨╡╨╖╨┤╨░.png", "╨Ш╨╝╨┐╨╡╤А╨░╤В╤А╨╕╤Ж╨░.png", "╨Ш╨╝╨┐╨╡╤А╨░╤В╨╛╤А.png",
+            "╨Ш╨╡╤А╨╛╤Д╨░╨╜╤В.png", "╨Ъ╨╛╤А╨╛╨╗╤М ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨Ъ╨╛╤А╨╛╨╗╤М ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨Ъ╨╛╤А╨╛╨╗╤М ╨Ь╨╡╤З╨╡╨╕╠Ж.png",
+            "╨Ъ╨╛╤А╨╛╨╗╤М ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨Ъ╨╛╤А╨╛╨╗╨╡╨▓╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨Ъ╨╛╤А╨╛╨╗╨╡╨▓╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png",
+            "╨Ъ╨╛╤А╨╛╨╗╨╡╨▓╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨Ъ╨╛╤А╨╛╨╗╨╡╨▓╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨Ъ╨╛╤А╨╛╨╗╨╡╨▓╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨Ъ╨╛╤А╨╛╨╗╨╡╨▓╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨Ъ╨╛╨╗╨╡╤Б╨╛ ╨д╨╛╤А╤В╤Г╨╜╤Л.png",
+            "╨Ъ╨╛╨╗╨╡╤Б╨╜╨╕╤Ж╨░.png", "╨Ы╤Г╨╜╨░.png", "╨Ь╨╕╤А.png", "╨Ь╨░╨│.png", "╨Ю╨▓╨╡╨╗╨╕╨║╨░.png", "╨Я╤П╤В╨╡╤А╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png",
+            "╨Я╤П╤В╨╡╤А╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨Я╤П╤В╨╡╤А╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨Я╤П╤В╨╡╤А╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png",
+            "╨Я╨╛╨▓╨╡╤И╨╡╨╜╨╜╤Л╨╕╤Ж.png", "╨Я╨░╨╢ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨Я╨░╨╢ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨Я╨░╨╢ ╨Ь╨╡╤З╨╡╨╕╠Ж.png",
+            "╨Я╨░╨╢ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨а╤Л╤Ж╨░╤А╤М ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨а╤Л╤Ж╨░╤А╤М ╨Ъ╤Г╨▒╨║╨╛╨▓.png",
+            "╨а╤Л╤Ж╨░╤А╤М ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨а╤Л╤Ж╨░╤А╤М ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨б╤Г╨┤.png", "╨б╨┐╤А╨░╨▓╨╡╨┤╨╗╨╕╨▓╨╛╤Б╤В╤М.png",
+            "╨б╨╕╨╗╨░.png", "╨б╨╛╨╗╨╜╤Ж╨╡.png", "╨б╨╝╨╡╤А╤В╤М.png", "╨б╨╡╨╝╨╡╤А╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨б╨╡╨╝╨╡╤А╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png",
+            "╨б╨╡╨╝╨╡╤А╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨б╨╡╨╝╨╡╤А╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨в╤А╨╛╨╕╠Ж╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png",
+            "╨в╤А╨╛╨╕╠Ж╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨в╤А╨╛╨╕╠Ж╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨в╤А╨╛╨╕╠Ж╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png",
+            "╨в╤Г╨╖ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨в╤Г╨╖ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨в╤Г╨╖ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨в╤Г╨╖ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png",
+            "╨г╨╝╨╡╤А╨╡╨╜╨╜╨╛╤Б╤В╤М.png", "╨з╨╡╤В╨▓╨╡╤А╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨з╨╡╤В╨▓╨╡╤А╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png",
+            "╨з╨╡╤В╨▓╨╡╤А╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png", "╨з╨╡╤В╨▓╨╡╤А╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png", "╨и╤Г╤В.png",
+            "╨и╨╡╤Б╤В╨╡╤А╨║╨░ ╨Ц╨╡╨╖╨╗╨╛╨▓.png", "╨и╨╡╤Б╤В╨╡╤А╨║╨░ ╨Ъ╤Г╨▒╨║╨╛╨▓.png", "╨и╨╡╤Б╤В╨╡╤А╨║╨░ ╨Ь╨╡╤З╨╡╨╕╠Ж.png",
+            "╨и╨╡╤Б╤В╨╡╤А╨║╨░ ╨Я╨╡╨╜╤В╨░╨║╨╗╨╡╨╕╠Ж.png"
+        ];
+
+        selectedCardFilenames = [];
+        let availableFiles = [...cardFiles]; 
+
+        for (let i = 0; i < 3; i++) {
+            if (availableFiles.length === 0) break;
+            const randomIndex = Math.floor(Math.random() * availableFiles.length);
+            selectedCardFilenames.push(availableFiles[randomIndex]);
+            availableFiles.splice(randomIndex, 1); /
+        }
+
+
+        for (let i = 0; i < selectedCardFilenames.length; i++) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            const encodedFilename = encodeURIComponent(selectedCardFilenames[i]);
+            card.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
+
+            cards.push(card);
+        }
+        cards.forEach(card => cardContainer.appendChild(card));
+        return cards;
+    }
+
+
+
+
+    function showCards() {
+        instruction.classList.add('instruction-hidden');
+        document.body.style.backgroundColor = '#704747';
+        cardTitle.classList.remove('card-title-hidden');
+
+        stars.forEach(star => {
+            star.classList.add('background-star');
+            if (star.classList.contains('selected')) star.classList.add('darkened-selected');
+            star.style.cursor = 'default';
+            star.removeEventListener('click', selectStar);
+        });
+
+        createCards();
+        cardContainer.classList.add('visible');
+        nextButton.style.display = 'block';
+        nextButton.addEventListener('click', () => {
+            sendCardData();
+            onNextButtonClick();
+        });
+    }
+
+    function sendCardData() {
+        tg.sendData(JSON.stringify(selectedCardFilenames));
+        tg.close();
+    }
+
+    function onNextButtonClick() {
+        selectedStars = 0;
+        document.body.style.backgroundColor = '#f2a8a8';
+        cardTitle.classList.add('card-title-hidden');
+        instruction.classList.remove('instruction-hidden');
+        stars.forEach(star => {
+            star.classList.remove('background-star', 'selected', 'darkened-selected');
+            star.style.cursor = 'pointer';
+            star.addEventListener('click', selectStar);
+        });
+        cardContainer.innerHTML = '';
+        cardContainer.classList.remove('visible');
+        nextButton.style.display = 'none';
+        stars.length = 0;
+        container.querySelectorAll('.star').forEach(star => container.removeChild(star));
+        selectedCardFilenames = [];
+        createStars();
+    }
+
+    createStars();
+</script>
+</body>
+</html>
