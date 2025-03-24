@@ -150,6 +150,16 @@
     const regularStarFiles = ["Vector-2.png", "Vector-3.png", "Vector-5.png", "Vector-6.png", "Vector-7.png", "Vector-8.png", "Vector-9.png", "Vector-10.png", "Vector-11.png", "Vector-12.png", "Vector-13.png"];
     const selectedStarFiles = ["Vector.png", "Vector-1.png", "Vector-4.png"];
 
+    function preloadImages(imageUrls) {
+        imageUrls.forEach(url => {
+            const img = new Image();
+            img.src = url;
+        });
+    }
+
+    const selectedStarImageUrls = selectedStarFiles.map(file => `${starBaseUrl}${encodeURIComponent(file)}?raw=true`);
+    preloadImages(selectedStarImageUrls);
+
     function selectStar(event) {
         const star = event.currentTarget;
         if (!cardContainer.classList.contains('visible') && !star.classList.contains('selected') && selectedStars < 3) {
