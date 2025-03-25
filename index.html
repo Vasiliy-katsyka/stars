@@ -146,9 +146,14 @@
     const nextButton = document.querySelector('.next-button');
     const cardTitle = document.querySelector('.card-title');
 
-    const starBaseUrl = "https://github.com/Vasiliy-katsyka/stars/blob/main/╨Ч╨▓╨╡╨╖╨┤╤Л/";
-    const regularStarFiles = ["Vector-2.png", "Vector-3.png", "Vector-5.png", "Vector-6.png", "Vector-7.png", "Vector-8.png", "Vector-9.png", "Vector-10.png", "Vector-11.png", "Vector-12.png", "Vector-13.png"];
-    const selectedStarFiles = ["Vector.png", "Vector-1.png", "Vector-4.png"];
+    // Use raw URLs for the two initial star images
+    const initialStarFiles = [
+        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Vector2.svg",
+        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Vector.svg"
+    ];
+    
+     const starBaseUrl = "https://github.com/Vasiliy-katsyka/stars/blob/main/╨Ч╨▓╨╡╨╖╨┤╤Л/";  //Keep for selected stars.
+    const selectedStarFiles = ["Vector.png", "Vector-1.png", "Vector-4.png"]; // Keep for selected star variations
 
     function preloadImages(imageUrls) {
         imageUrls.forEach(url => {
@@ -157,8 +162,11 @@
         });
     }
 
+     // Preload selected star images (still needed)
     const selectedStarImageUrls = selectedStarFiles.map(file => `${starBaseUrl}${encodeURIComponent(file)}?raw=true`);
     preloadImages(selectedStarImageUrls);
+    preloadImages(initialStarFiles); // Preload the initial star images
+
 
     function selectStar(event) {
         const star = event.currentTarget;
@@ -182,8 +190,10 @@
             star.style.width = `${size}px`;
             star.style.height = `${size}px`;
 
-            const randomStarFile = regularStarFiles[Math.floor(Math.random() * regularStarFiles.length)];
-            star.style.backgroundImage = `url(${starBaseUrl}${encodeURIComponent(randomStarFile)}?raw=true)`;
+            // Use only the two initial star files
+            const randomStarFile = initialStarFiles[Math.floor(Math.random() * initialStarFiles.length)];
+            star.style.backgroundImage = `url(${randomStarFile})`;  // No need to encode, already raw URLs
+
 
             let left, top, attempts = 0;
             do {
@@ -361,8 +371,9 @@
         instruction.classList.remove('instruction-hidden');
         stars.forEach(star => {
             star.classList.remove('background-star', 'selected', 'darkened-selected');
-             const randomStarFile = regularStarFiles[Math.floor(Math.random() * regularStarFiles.length)];
-             star.style.backgroundImage = `url(${starBaseUrl}${encodeURIComponent(randomStarFile)}?raw=true)`;
+            // Reset to initial star images
+             const randomStarFile = initialStarFiles[Math.floor(Math.random() * initialStarFiles.length)];
+             star.style.backgroundImage = `url(${randomStarFile})`;
 
             star.style.cursor = 'pointer';
             star.addEventListener('click', selectStar);
