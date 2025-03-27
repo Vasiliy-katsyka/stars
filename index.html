@@ -32,8 +32,8 @@
             cursor: pointer;
             transition:  opacity 0.3s ease;
             opacity: 0.9;
-            width: 50px;
-            height: 50px;
+            width: 35px;
+            height: 35px;
             z-index: 1;
             -webkit-tap-highlight-color: transparent;
         }
@@ -83,11 +83,11 @@
         .card-container.visible { opacity: 1; }
 
         .card {
-            width: 80px;
-            height: 140.53px;
-            border: 4px solid #f5f5dc;
-            border-radius: 8px;
-            margin: 0 7px;
+            width: 60px;
+            height: 105.4px;
+            border: 3px solid #f5f5dc;
+            border-radius: 6px;
+            margin: 0 5px;
             cursor: pointer;
             position: relative;
             background-size: cover;
@@ -130,10 +130,10 @@
 
         .temporary-card {
             position: absolute;
-            width: 70px;
-            height: 123px;
-            border: 4px solid #f5f5dc;
-            border-radius: 8px;
+            width: 50px;
+            height: 87.83px;
+            border: 3px solid #f5f5dc;
+            border-radius: 6px;
             background-size: cover;
             background-position: center;
             z-index: 3;
@@ -151,9 +151,8 @@
             transition: opacity 2s ease 2s;
         }
 
-        /* Style for preloaded images */
         .preload-images {
-            display: none; /* Hide the preloaded images */
+            display: none;
         }
     </style>
 </head>
@@ -165,7 +164,7 @@
     <button class="next-button">Далее ></button>
 </div>
 
-<div class="preload-images"></div> <!-- Container for preloaded images -->
+<div class="preload-images"></div>
 
 <script>
     const tg = window.Telegram.WebApp;
@@ -184,7 +183,7 @@
     const cardTitle = document.querySelector('.card-title');
     const body = document.querySelector('body');
     const starsToChooseSpan = document.getElementById('starsToChoose');
-    const preloadImagesContainer = document.querySelector('.preload-images'); // Get preload images container
+    const preloadImagesContainer = document.querySelector('.preload-images');
 
     const initialStarFiles = [
         "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector2.svg",
@@ -216,7 +215,6 @@
             if (selectedStarFile) {
                 star.style.backgroundImage = `url(${selectedStarFile})`;
             } else {
-                console.warn("No selected image defined for:", currentBackgroundImage);
                  return;
              }
 
@@ -230,14 +228,15 @@
     }
 
 
-   function createStars() {
+    function createStars() {
         const containerRect = container.getBoundingClientRect();
         const instructionRect = instruction.getBoundingClientRect();
+        const minStarDistance = 60;
 
         for (let i = 0; i < totalStars; i++) {
             const star = document.createElement('div');
             star.classList.add('star');
-            const size = Math.floor(Math.random() * 21) + 40;
+            const size = Math.floor(Math.random() * 11) + 25;
             star.style.width = `${size}px`;
             star.style.height = `${size}px`;
 
@@ -250,7 +249,7 @@
                 left = Math.random() * (containerRect.width - size);
                 top = Math.random() * (containerRect.height - size);
                 attempts++;
-            } while (attempts < 100 && (isOverlapping(star, left, top, size) || isInsideInstruction(left, top, size, instructionRect)));
+            } while (attempts < 100 && (isOverlapping(star, left, top, size, minStarDistance) || isInsideInstruction(left, top, size, instructionRect)));
 
             star.style.left = `${left}px`;
             star.style.top = `${top}px`;
@@ -261,14 +260,17 @@
     }
 
 
-    function isOverlapping(newStar, left, top, size) {
+    function isOverlapping(newStar, left, top, size, minDistance) {
         for (const existingStar of stars) {
             const existingRect = existingStar.getBoundingClientRect();
-             if (left < existingRect.right && left + size > existingRect.left &&
-                top < existingRect.bottom && top + size > existingRect.top) return true;
+            const distance = Math.sqrt(Math.pow(left + size / 2 - (existingRect.left + existingRect.width / 2), 2) +
+                                        Math.pow(top + size / 2 - (existingRect.top + existingRect.height / 2), 2));
+
+            if (distance < minDistance) return true;
         }
         return false;
     }
+
 
     function isInsideInstruction(left, top, size, instructionRect) {
       const starRect = { left, top, right: left + size, bottom: top + size };
@@ -378,7 +380,6 @@
             const img = new Image();
             img.src = repoBaseUrl + encodeURIComponent(filename);
             img.onload = () => {
-                console.log("Images loaded")
             };
             img.onerror = () => {
                 console.error("Failed to preload image:", filename);
@@ -387,6 +388,7 @@
             preloadImagesContainer.appendChild(img);
         });
     }
+
     const initialCardFilenames = createCards();
     preloadCardImages(initialCardFilenames);
 
@@ -502,7 +504,7 @@
         preloadCardImages(selectedCardFilenames);
         body.classList.remove('dark-mode');
 
-         createStars();  
+         createStars();
     }
 
     starsToChooseSpan.textContent = numberOfChoices;
