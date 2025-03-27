@@ -83,14 +83,16 @@
         .card-container.visible { opacity: 1; }
 
         .card {
+           /* Set the fixed dimensions */
             width: 100px;
-            height: 150px;
+            height: 175.67px; /* 100 * (527/300) = 175.67 Maintain 300:527 ratio */
             border: 6px solid #f5f5dc; /* Beige border */
             border-radius: 10px;
             margin: 0 10px;
             cursor: pointer;
             position: relative;
-            background-size: cover;
+            background-size: cover; /* This is VERY important to make the image fill the fixed size */
+            background-position: center; /* Center the image within the fixed size */
             z-index: 2;
         }
 
@@ -126,11 +128,34 @@
         }
 
         .card-title-hidden { display: none; }
+
+        .temporary-card {
+            position: absolute;
+            width: 100px;
+            height: 175.67px;
+            border: 6px solid #f5f5dc;
+            border-radius: 10px;
+            background-size: cover;
+            background-position: center;
+            z-index: 3;
+            transition: transform 6s ease, opacity 0.5s ease; /* Changed to 4 seconds */
+        }
+
+        body.dark-mode {
+            background-color: #444; /* Darker background color */
+            transition: background-color 4s ease; /* Added transition for background color */
+        }
+
+        .card-title.card-title-visible,
+        .next-button.next-button-visible {
+            opacity: 1;
+            transition: opacity 2s ease 2s; /* Fade in after 2 seconds, over 2 seconds */
+        }
     </style>
 </head>
 <body>
 <div class="container">
-    <div class="instruction">Думай о своем вопросе <br> и выбери <span style="color: #ffd700;">3 </span>звезды</div>
+    <div class="instruction">Думай о своем вопросе <br> и выбери <span style="color: #ffd700;"><span id="starsToChoose"></span> </span>звезды</div>
     <div class="card-title card-title-hidden">Твои карты:</div>
     <div class="card-container"></div>
     <button class="next-button">Далее ></button>
@@ -140,6 +165,8 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    // Variable to control the number of stars to choose and cards to show
+    const numberOfChoices = 3; // You can change this value
     let selectedStars = 0;
     const totalStars = 15;
     const stars = [];
@@ -150,15 +177,20 @@
     const cardContainer = document.querySelector('.card-container');
     const nextButton = document.querySelector('.next-button');
     const cardTitle = document.querySelector('.card-title');
+    const body = document.querySelector('body');
+    const starsToChooseSpan = document.getElementById('starsToChoose');
 
     // Use raw URLs for the two initial star images
     const initialStarFiles = [
-        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Vector2.svg",
-        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Vector.svg"
+        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector2.svg",
+        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector.svg"
     ];
-    
-     const starBaseUrl = "https://github.com/Vasiliy-katsyka/stars/blob/main/╨Ч╨▓╨╡╨╖╨┤╤Л/";  //Keep for selected stars.
-    const selectedStarFiles = ["Vector.png", "Vector-1.png", "Vector-4.png"]; // Keep for selected star variations
+
+    const selectedStarMap = {
+        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector.svg": "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vecto3r.svg",
+        "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector2.svg": "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector4.svg"
+    };
+
 
     function preloadImages(imageUrls) {
         imageUrls.forEach(url => {
@@ -167,23 +199,33 @@
         });
     }
 
-     // Preload selected star images (still needed)
-    const selectedStarImageUrls = selectedStarFiles.map(file => `${starBaseUrl}${encodeURIComponent(file)}?raw=true`);
-    preloadImages(selectedStarImageUrls);
     preloadImages(initialStarFiles); // Preload the initial star images
 
 
-    function selectStar(event) {
+   function selectStar(event) {
         const star = event.currentTarget;
-        if (!cardContainer.classList.contains('visible') && !star.classList.contains('selected') && selectedStars < 3) {
+        if (!cardContainer.classList.contains('visible') && !star.classList.contains('selected') && selectedStars < numberOfChoices) {
+            const currentBackgroundImage = star.style.backgroundImage.slice(5, -2); // Extract URL from backgroundImage
+            let selectedStarFile = selectedStarMap[currentBackgroundImage];
 
-            const selectedStarFile = selectedStarFiles[Math.floor(Math.random() * selectedStarFiles.length)];
-            star.style.backgroundImage = `url(${starBaseUrl}${encodeURIComponent(selectedStarFile)}?raw=true)`;
+            if (selectedStarFile) {
+                star.style.backgroundImage = `url(${selectedStarFile})`;
+            } else {
+                // Handle case where the initial image doesn't have a specific selected state
+                console.warn("No selected image defined for:", currentBackgroundImage);
+                 return;
+             }
+
             star.classList.add('selected');
             selectedStars++;
-            if (selectedStars === 3) showCards();
+
+             if (selectedStars === numberOfChoices) {
+               showTemporaryCards();
+             }
         }
     }
+
+
    function createStars() {
         const containerRect = container.getBoundingClientRect();
         const instructionRect = instruction.getBoundingClientRect();
@@ -230,7 +272,8 @@
       return starRect.left < instructionRect.right && starRect.right > instructionRect.left &&
              starRect.top < instructionRect.bottom && starRect.bottom > instructionRect.top;
     }
- function createCards() {
+
+     function createCards() {
         const cards = [];
         const repoBaseUrl = "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Cards-png%202/Cards-png/";
         const cardFiles = [
@@ -317,52 +360,94 @@
         selectedCardFilenames = [];
         let availableFiles = [...cardFiles];
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < numberOfChoices; i++) {
             if (availableFiles.length === 0) break;
             const randomIndex = Math.floor(Math.random() * availableFiles.length);
             selectedCardFilenames.push(availableFiles[randomIndex]);
             availableFiles.splice(randomIndex, 1);
         }
-
-
-        for (let i = 0; i < selectedCardFilenames.length; i++) {
-            const card = document.createElement('div');
-            card.classList.add('card');
-            const encodedFilename = encodeURIComponent(selectedCardFilenames[i]);
-            card.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
-
-            cards.push(card);
-        }
-        cards.forEach(card => cardContainer.appendChild(card));
-        return cards;
+        return selectedCardFilenames;
     }
 
 
 
+   function showTemporaryCards() {
+       const filenames = createCards();
 
-    function showCards() {
+        stars.filter(star => star.classList.contains('selected')).forEach((star, index) => {
+            const starRect = star.getBoundingClientRect();
+            const containerRect = container.getBoundingClientRect();
+
+            const tempCard = document.createElement('div');
+            tempCard.classList.add('temporary-card');
+            const encodedFilename = encodeURIComponent(filenames[index]);
+
+            const repoBaseUrl = "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Cards-png%202/Cards-png/";
+            tempCard.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
+
+            tempCard.style.left = `${starRect.left - containerRect.left}px`;
+            tempCard.style.top = `${starRect.top - containerRect.top}px`;
+            container.appendChild(tempCard);
+
+
+            // Store a reference to the card
+            star.tempCard = tempCard;
+        });
+
+        setTimeout(() => {
+            body.classList.add('dark-mode');
+             showCards();
+        }, 50);  // Short delay to allow DOM updates
+    }
+
+
+   function showCards() {
+       const filenames = selectedCardFilenames;
         instruction.classList.add('instruction-hidden');
-        document.body.style.backgroundColor = '#704747';
-        cardTitle.classList.remove('card-title-hidden');
+         //add to show temporary card
+         stars.filter(star => star.classList.contains('selected')).forEach((star, index) => {
+            const tempCard = document.createElement('div');
+            tempCard.classList.add('card');
+            const encodedFilename = encodeURIComponent(filenames[index]);
+            const repoBaseUrl = "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Cards-png%202/Cards-png/";
 
-        stars.forEach(star => {
-            star.classList.add('background-star');
-            if (star.classList.contains('selected')) {
-                star.classList.add('darkened-selected');
-                // Keep selected star image, but change opacity
-            }
-            star.style.cursor = 'default';
-            star.removeEventListener('click', selectStar);
+            tempCard.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
+            cardContainer.appendChild(tempCard);
         });
 
-        createCards();
-        cardContainer.classList.add('visible');
-        nextButton.style.display = 'block';
-        nextButton.addEventListener('click', () => {
-            sendCardData();
-            onNextButtonClick();
-        });
+
+        setTimeout(() => {
+            document.body.style.backgroundColor = '#704747';
+            cardTitle.classList.remove('card-title-hidden');
+            nextButton.classList.add('next-button-visible');
+            cardTitle.classList.add('card-title-visible');
+
+            stars.forEach(star => {
+                star.classList.add('background-star');
+                if (star.classList.contains('selected')) {
+                    star.classList.add('darkened-selected');
+                     // Hide or remove the temporary card
+                    if (star.tempCard) {
+                        star.tempCard.style.opacity = '0';
+                        setTimeout(() => {
+                            star.tempCard.remove();
+                        }, 500); // Wait for transition
+                    }
+                }
+                star.style.cursor = 'default';
+                star.removeEventListener('click', selectStar);
+            });
+
+            cardContainer.classList.add('visible');
+            nextButton.style.display = 'block';
+            nextButton.addEventListener('click', () => {
+                sendCardData();
+                onNextButtonClick();
+            });
+        }, 2000)
     }
+
+
 
     function sendCardData() {
         tg.sendData(JSON.stringify(selectedCardFilenames));
@@ -373,6 +458,8 @@
         selectedStars = 0;
         document.body.style.backgroundColor = 'rgb(237 129 124)';
         cardTitle.classList.add('card-title-hidden');
+        nextButton.classList.remove('next-button-visible');
+        cardTitle.classList.remove('card-title-visible');
         instruction.classList.remove('instruction-hidden');
         stars.forEach(star => {
             star.classList.remove('background-star', 'selected', 'darkened-selected');
@@ -382,6 +469,10 @@
 
             star.style.cursor = 'pointer';
             star.addEventListener('click', selectStar);
+             if (star.tempCard) {
+                star.tempCard.remove();
+                star.tempCard = null;
+            }
         });
         cardContainer.innerHTML = '';
         cardContainer.classList.remove('visible');
@@ -390,8 +481,11 @@
         container.querySelectorAll('.star').forEach(star => container.removeChild(star));
         selectedCardFilenames = [];
         createStars();
+        body.classList.remove('dark-mode');
     }
 
+    // Initialize the number of stars to choose in the instruction
+    starsToChooseSpan.textContent = numberOfChoices;
     createStars();
 </script>
 </body>
