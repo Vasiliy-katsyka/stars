@@ -150,6 +150,11 @@
             opacity: 1;
             transition: opacity 2s ease 2s;
         }
+
+        /* Style for preloaded images */
+        .preload-images {
+            display: none; /* Hide the preloaded images */
+        }
     </style>
 </head>
 <body>
@@ -159,6 +164,8 @@
     <div class="card-container"></div>
     <button class="next-button">Далее ></button>
 </div>
+
+<div class="preload-images"></div> <!-- Container for preloaded images -->
 
 <script>
     const tg = window.Telegram.WebApp;
@@ -177,6 +184,7 @@
     const cardTitle = document.querySelector('.card-title');
     const body = document.querySelector('body');
     const starsToChooseSpan = document.getElementById('starsToChoose');
+    const preloadImagesContainer = document.querySelector('.preload-images'); // Get preload images container
 
     const initialStarFiles = [
         "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector2.svg",
@@ -364,10 +372,26 @@
         return selectedCardFilenames;
     }
 
+    function preloadCardImages(filenames) {
+        const repoBaseUrl = "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Cards-png%202/Cards-png/";
+        filenames.forEach(filename => {
+            const img = new Image();
+            img.src = repoBaseUrl + encodeURIComponent(filename);
+            img.onload = () => {
+                console.log("Images loaded")
+            };
+            img.onerror = () => {
+                console.error("Failed to preload image:", filename);
+            };
 
+            preloadImagesContainer.appendChild(img);
+        });
+    }
+    const initialCardFilenames = createCards();
+    preloadCardImages(initialCardFilenames);
 
    function showTemporaryCards() {
-       const filenames = createCards();
+        const filenames = selectedCardFilenames;
 
         stars.filter(star => star.classList.contains('selected')).forEach((star, index) => {
             const starRect = star.getBoundingClientRect();
@@ -396,10 +420,10 @@
 
 
    function showCards() {
-       const filenames = selectedCardFilenames;
+        const filenames = selectedCardFilenames;
         instruction.classList.add('instruction-hidden');
 
-         stars.filter(star => star.classList.contains('selected')).forEach((star, index) => {
+        stars.filter(star => star.classList.contains('selected')).forEach((star, index) => {
             const tempCard = document.createElement('div');
             tempCard.classList.add('card');
             const encodedFilename = encodeURIComponent(filenames[index]);
@@ -473,9 +497,12 @@
         nextButton.style.display = 'none';
         stars.length = 0;
         container.querySelectorAll('.star').forEach(star => container.removeChild(star));
-        selectedCardFilenames = [];
-        createStars();
+
+        selectedCardFilenames = createCards();
+        preloadCardImages(selectedCardFilenames);
         body.classList.remove('dark-mode');
+
+         createStars();  
     }
 
     starsToChooseSpan.textContent = numberOfChoices;
