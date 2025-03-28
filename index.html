@@ -83,18 +83,24 @@
         .card-container.visible { opacity: 1; }
 
         .card {
-            width: 60px;
-            height: 105.4px;
-            border: 3px solid #f5f5dc;
-            border-radius: 6px;
-            margin: 0 5px;
+            width: 100px;
+            height: 175.67px;
+            border: 5px solid #f5f5dc;
+            border-radius: 10px;
+            margin: 0 7px;
             cursor: pointer;
             position: relative;
             background-size: cover;
             background-position: center;
             z-index: 2;
+            transition: width 5s ease, height 5s ease, border-width 5s ease, border-radius 5s ease;
         }
-
+         .card.smaller { /* Apply smaller size if more than 3 cards */
+            width: 60px;
+            height: 105.4px;
+            border-width: 3px;
+            border-radius: 6px;
+        }
         .next-button {
            background-color: #ffeb3b;
             color: #333;
@@ -148,7 +154,6 @@
         .card-title.card-title-visible,
         .next-button.next-button-visible {
             opacity: 1;
-            transition: opacity 2s ease 2s;
         }
 
         .preload-images {
@@ -383,40 +388,40 @@
    function showCards() {
         const filenames = selectedCardFilenames;
         instruction.classList.add('instruction-hidden');
+        cardContainer.classList.add('visible');
         stars.filter(star => star.classList.contains('selected')).forEach((star, index) => {
-            const tempCard = document.createElement('div');
-            tempCard.classList.add('card');
+            const card = document.createElement('div');
+            card.classList.add('card');
+            if (numberOfChoices > 3) {
+                card.classList.add('smaller');
+            }
             const encodedFilename = encodeURIComponent(filenames[index]);
             const repoBaseUrl = "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/main/Cards-png%202/Cards-png/";
-            tempCard.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
-            cardContainer.appendChild(tempCard);
+            card.style.backgroundImage = `url(${repoBaseUrl + encodedFilename})`;
+            cardContainer.appendChild(card);
         });
-        setTimeout(() => {
-            document.body.style.backgroundColor = '#704747';
-            cardTitle.classList.remove('card-title-hidden');
-            nextButton.classList.add('next-button-visible');
-            cardTitle.classList.add('card-title-visible');
-            stars.forEach(star => {
-                star.classList.add('background-star');
-                if (star.classList.contains('selected')) {
-                    star.classList.add('darkened-selected');
-                    if (star.tempCard) {
-                        star.tempCard.style.opacity = '0';
-                        setTimeout(() => {
-                            star.tempCard.remove();
-                        }, 500);
-                    }
+        cardTitle.classList.remove('card-title-hidden');
+        nextButton.classList.add('next-button-visible');
+        cardTitle.classList.add('card-title-visible');
+        stars.forEach(star => {
+            star.classList.add('background-star');
+            if (star.classList.contains('selected')) {
+                star.classList.add('darkened-selected');
+                if (star.tempCard) {
+                    star.tempCard.style.opacity = '0';
+                    setTimeout(() => {
+                        star.tempCard.remove();
+                    }, 500);
                 }
-                star.style.cursor = 'default';
-                star.removeEventListener('click', selectStar);
-            });
-            cardContainer.classList.add('visible');
-            nextButton.style.display = 'block';
-            nextButton.addEventListener('click', () => {
-                sendCardData();
-                onNextButtonClick();
-            });
-        }, 2000)
+            }
+            star.style.cursor = 'default';
+            star.removeEventListener('click', selectStar);
+        });
+        nextButton.style.display = 'block';
+        nextButton.addEventListener('click', () => {
+            sendCardData();
+            onNextButtonClick();
+        });
     }
     function sendCardData() {
         tg.sendData(JSON.stringify(selectedCardFilenames));
