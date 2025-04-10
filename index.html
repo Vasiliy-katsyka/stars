@@ -173,7 +173,24 @@
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
-    const numberOfChoices = 3;
+    let numberOfChoices = 3;
+    // вот тут хэндлится
+    try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const numParam = urlParams.get('num');
+    
+        if (numParam !== null) {
+            const parsedNum = parseInt(numParam, 10);
+    
+            if (!isNaN(parsedNum) && parsedNum > 0) {
+                numberOfChoices = parsedNum;
+            }
+        }
+    } catch (e) {
+        console.error("Error processing URL parameters:", e);
+    }
+    
+    starsToChooseSpan.textContent = numberOfChoices;
     let selectedStars = 0;
     const totalStars = 15;
     const stars = [];
