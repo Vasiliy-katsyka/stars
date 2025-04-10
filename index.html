@@ -173,7 +173,21 @@
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
+    
     let numberOfChoices = 3;
+
+    let selectedStars = 0;
+    const totalStars = 15;
+    const stars = [];
+    let selectedCardFilenames = [];
+    const container = document.querySelector('.container');
+    const instruction = document.querySelector('.instruction');
+    const cardContainer = document.querySelector('.card-container');
+    const nextButton = document.querySelector('.next-button');
+    const cardTitle = document.querySelector('.card-title');
+    const body = document.querySelector('body');
+    const starsToChooseSpan = document.getElementById('starsToChoose');
+
     // вот тут хэндлится
     try {
         const urlParams = new URLSearchParams(window.location.search);
@@ -191,17 +205,7 @@
     }
     
     starsToChooseSpan.textContent = numberOfChoices;
-    let selectedStars = 0;
-    const totalStars = 15;
-    const stars = [];
-    let selectedCardFilenames = [];
-    const container = document.querySelector('.container');
-    const instruction = document.querySelector('.instruction');
-    const cardContainer = document.querySelector('.card-container');
-    const nextButton = document.querySelector('.next-button');
-    const cardTitle = document.querySelector('.card-title');
-    const body = document.querySelector('body');
-    const starsToChooseSpan = document.getElementById('starsToChoose');
+    
     const preloadImagesContainer = document.querySelector('.preload-images');
     const initialStarFiles = [
         "https://raw.githubusercontent.com/Vasiliy-katsyka/stars/5f6e5f0e7d869bc594d813ad68ccbf16d2c1e3cd/Vector2.svg",
