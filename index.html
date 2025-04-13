@@ -445,7 +445,16 @@
         });
     }
     function sendCardData() {
-        tg.sendData(JSON.stringify(selectedCardFilenames));
+        const filenamesWithoutExtension = selectedCardFilenames.map(filename => {
+            if (filename.toLowerCase().endsWith('.png')) {
+                return filename.substring(0, filename.length - 4);
+            }
+            return filename;
+        });
+
+        const dataString = filenamesWithoutExtension.join(",");
+
+        tg.sendData(dataString);
         tg.close();
     }
     function onNextButtonClick() {
