@@ -444,16 +444,33 @@
             onNextButtonClick();
         });
     }
+    function decodeWindows1251Mojibake(encodedString) {
+      try {
+        const bytes = [];
+        for (let i = 0; i < encodedString.length; i++) {
+          bytes.push(encodedString.charCodeAt(i) & 0xff);
+        }
+        const byteArray = new Uint8Array(bytes);
+        const decoder = new TextDecoder('windows-1251');
+        const decodedString = decoder.decode(byteArray);
+        return decodedString;
+      } catch (e) {
+        console.error("Failed to decode string:", encodedString, e);
+        return encodedString;
+      }
+    }
+    
     function sendCardData() {
-        const filenamesWithoutExtension = selectedCardFilenames.map(filename => {
-            if (filename.toLowerCase().endsWith('.png')) {
-                return filename.substring(0, filename.length - 4);
+        const decodedFilenames = selectedCardFilenames.map(encodedFilename => {
+            let decodedName = decodeWindows1251Mojibake(encodedFilename);
+            if (decodedName.toLowerCase().endsWith('.png')) {
+                return decodedName.substring(0, decodedName.length - 4);
             }
-            return filename;
+            return decodedName;
         });
-
-        const dataString = filenamesWithoutExtension.join(",");
-
+    
+        const dataString = decodedFilenames.join(",");
+    
         tg.sendData(dataString);
         tg.close();
     }
